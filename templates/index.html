@@ -1,19 +1,12 @@
 <!DOCTYPE html>
 <html lang="en">
-    <head>
-        <meta charset="UTF-8" />
-        <meta http-equiv="X-UA-Compatib1e" content="IE=edge" />
-        <meta name="viewport" content="width=device-width, initial-scale=l.0" />
-        <link
-          rel="stylesheet"
-          type="text/css"
-          href="{{ url_for('static', filename='index.css')}}"
-        />
-        <link
-          href="https://unpkg.com/boxicons@2.1.4/css/boxicons.min.css"
-          rel="stylesheet"
-        />
-      </head>
+<head>
+    <meta charset="UTF-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="stylesheet" type="text/css" href="{{ url_for('static', filename='index.css') }}">
+    <link href="https://unpkg.com/boxicons@2.1.4/css/boxicons.min.css" rel="stylesheet">
+</head>
 <body>
     <div class="judul">
         <h1>CRYPHOGRAPHY PRNG</h1>
@@ -25,31 +18,25 @@
                 <div class="pesan">
                     <h1>MASUKAN TEKS</h1>
                     <div class="input-box">
-                        <input 
-                        type="text"
-                        id="message" 
-                        name="message"
-                        required
-                        />
+                        <input type="text" id="message" name="message" required>
                     </div>
                     <h1>MASUKAN KEY</h1>
                     <div class="input-box">
-                        <input 
-                        type="text"
-                        id="key"
-                        name="key"
-                        required>
+                        <input type="text" id="key" name="key" required>
                     </div>
                 </div>
                 <div class="button">
                     <div class="btn1">
-                        <button type="submit" class="btn" value="Encryptt">ENKRIPSI</button>
+                        <button type="submit" class="btn" name="Encrypt">ENKRIPSI</button>
                     </div>
                     <div class="btn2">
-                        <button type="submit" class="btn" value="Decrypt">DESKRIPSI</button>
+                        <button type="submit" class="btn" name="Decrypt">DESKRIPSI</button>
+                        {% if 'Decrypt' in request.form %}
+                        <input type="hidden" name="iv" value="{{ iv }}">
+                        {% endif %}
                     </div>
                 </div>
-            </form>
+            </form>                       
         </div>
         <div class="hasil">  
             <div class="Enkripsi">

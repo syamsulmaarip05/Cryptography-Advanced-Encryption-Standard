@@ -1,68 +1,59 @@
-from flask import Flask, render_template, request
+from flask import Flask, render_template, request, session
+from cryptography.hazmat.primitives.ciphers import Cipher, algorithms, modes
+from cryptography.hazmat.primitives import padding
+from cryptography.hazmat.backends import default_backend
+import secrets
 
 app = Flask(__name__)
-app.secret_key = "cripto"
+app.secret_key = "crypto"
 
-class LCG:
-    def __init__(self, seed, a=100, c=200, m=2**32):
-        self.seed = seed
-        self.a = a
-        self.c = c
-        self.m = m
 
-    def generate(self):
-        result = (self.a * self.seed + self.c) % self.m
-        print("LCG Result:", result)
-        self.seed = result
-        return self.seed
+def get_random_bytes(length):
+    return secrets.token_bytes(length)
 
-def encrypt(message, key):
-    lcg = LCG(key)
-    encrypted_message = bytearray()
-    for char in message:
-        lcg_value = lcg.generate()
-        print("LCG Value:", lcg_value)
-        encrypted_char = char ^ lcg_value % 256
-        encrypted_message.append(encrypted_char)
-        print("Encrypted Char:", encrypted_char)
-    return encrypted_message
+def encrypt_AES(key, plaintext):
+    iv = get_random_bytes(16)
+    print("Generated IV:", iv.hex())
 
-def decrypt(encrypted_message, key):
-    lcg = LCG(key)
-    decrypted_message = bytearray()
-    for char in encrypted_message:
-        lcg_value = lcg.generate()
-        decrypted_char = char ^ lcg_value % 256
-        decrypted_message.append(decrypted_char)
-    return decrypted_message
+    cipher = Cipher(algorithms.AES(key), modes.CBC(iv), backend=default_backend())
+    encryptor = cipher.encryptor()
 
+    padder = padding.PKCS7(128).padder()
+    padded_data = padder.update(plaintext.encode()) + padder.finalize()
+    print("Padded Data:", padded_data.hex())
+
+    ciphertext = encryptor.update(padded_data) + encryptor.finalize()
+    print("Ciphertext:", ciphertext.hex())
+
+    session['iv'] = iv  # Simpan IV dalam session
+    return ciphertext
+
+
+def decrypt_AES(key, ciphertext):
+    iv = session.get('iv', b'')  # Ambil IV dari session, default b'' jika tidak ada
+    cipher = Cipher(algorithms.AES(key), modes.CBC(iv), backend=default_backend())
+    decryptor = cipher.decryptor()
+    unpadder = padding.PKCS7(128).unpadder()
+    plaintext = decryptor.update(ciphertext) + decryptor.finalize()
+    unpadded_data = unpadder.update(plaintext) + unpadder.finalize()
+    return unpadded_data.decode()
 
 @app.route('/', methods=['GET', 'POST'])
 def index():
     if request.method == 'POST':
-        key = int(request.form['key'])
-        message = request.form['message']
+        key = (request.form['key'][:16].ljust(16)).encode('utf-8')
 
-        # Check if input is hexadecimal, indicating it's encrypted
-        try:
-            message = bytes.fromhex(message)
-            is_encrypted = True
-        except ValueError:
-            is_encrypted = False
+        if 'Encrypt' in request.form:
+            message = request.form['message']
+            ciphertext = encrypt_AES(key, message)
+            return render_template('index.html', encrypted_message=ciphertext.hex(), wrap_text=True)
 
-        if is_encrypted:
-            # Decrypt the message
-            decrypted_message = decrypt(message, key)
-            return render_template('index.html', decrypted_message=decrypted_message.decode(), wrap_text=True)
-
-        else:
-            # Encrypt the message
-            encrypted_message = encrypt(message.encode(), key)
-            encrypted_hex = encrypted_message.hex()
-            return render_template('index.html', encrypted_message=encrypted_hex, wrap_text=True)
+        elif 'Decrypt' in request.form:
+            ciphertext = bytes.fromhex(request.form['message'])
+            decrypted_message = decrypt_AES(key, ciphertext)
+            return render_template('index.html', decrypted_message=decrypted_message, wrap_text=True)
 
     return render_template('index.html', wrap_text=True)
-
 
 if __name__ == '__main__':
     app.run(debug=True)
